@@ -20,7 +20,9 @@
           </div>
       </div>
       <div class="form-group">
-          <label for="phone">Phone</label>
+          <label for="phone">Phone
+            <span id = "phone_error" class = "error" style = 'color : red;'></span></label>
+          </label>
           {{ form.phone(class_ = 'form-control', placeholder='xxx-xxx-xxxx', autofocus = true) }}
         </div>
       <div class="form-group">
@@ -29,17 +31,23 @@
         {{ form.genres(class_ = 'form-control', placeholder='Genres, separated by commas', autofocus = true) }}
       </div>
       <div class="form-group">
-          <label for="facebook_link">Facebook Link</label>
+          <label for="facebook_link">Facebook Link
+            <span id = "facebook_error" class = "error" style = 'color : red;'></span></label>
+          </label>
           {{ form.facebook_link(class_ = 'form-control', placeholder='http://', autofocus = true) }}
         </div>
       
       <div class="form-group">
-          <label for="image_link">Image Link</label>
+          <label for="image_link">Image Link
+            <span id = "image_error" class = "error" style = 'color : red;'></span></label>
+          </label>
           {{ form.image_link(class_ = 'form-control', placeholder='http://', autofocus = true) }}
       </div>
 
       <div class="form-group">
-            <label for="website_link">Website Link</label>
+            <label for="website_link">Website Link
+              <span id = "image_error" class = "error" style = 'color : red;'></span></label>
+            </label>
             {{ form.website_link(class_ = 'form-control', placeholder='http://', autofocus = true) }}
       </div>
 
@@ -53,7 +61,85 @@
           {{ form.seeking_description(class_ = 'form-control', autofocus = true) }}
       </div>
       
-      <input type="submit" value="Edit Artist" class="btn btn-primary btn-lg btn-block">
+      <input type="submit" id = "submitBtn" value="Edit Artist" class="btn btn-primary btn-lg btn-block">
     </form>
   </div>
+
+
+  <script>
+    const phone = document.getElementById("phone")
+    const phError = document.getElementById("phone_error")
+    const submit_btn = document.getElementById("submitBtn")
+    submit_btn.disabled = true
+    
+    phone.addEventListener("input",(event)=> {
+
+      console.log(document.getElementById("phone").value);
+      
+      if(!validatePhoneNumber(document.getElementById("phone").value)){
+        submit_btn.disabled = true;
+        phError.textContent = "\nPLEASE ENTER A VALID PHONE NUMBER";
+      
+      }else{submit_btn.disabled = false; phError.textContent = "";}
+      
+    })
+    function validatePhoneNumber(phoneNumber) {
+      
+      if ((phoneNumber.length == 11) && (!isNaN(phoneNumber))) {
+        return true;
+      } else {
+        return false;
+      }
+    }
+
+    const image_link = document.getElementById("image_link")
+    const image_error = document.getElementById("image_error")
+
+    image_link.addEventListener("input",(event)=> {
+      
+    if(!validate_link(document.getElementById("image_link").value)){
+      submit_btn.disabled = true;
+      image_error.textContent = "\nPLEASE ENTER A VALID LINK";
+
+    }else{submit_btn.disabled = false; image_error.textContent = "";}
+
+    })
+    function validate_link(link) {
+
+    if (link.slice(0,8) == "https://" || link.slice(0,7) == "http://"  ) {
+      return true;
+    } else {
+      return false;
+    }
+    }
+
+
+
+    const website_link = document.getElementById("website_link") 
+    const website_error = document.getElementById("website_error")
+
+    website_link.addEventListener("input",(event)=> {
+      
+    if(!validate_link(document.getElementById("website_link").value)){
+      submit_btn.disabled = true;
+      website_error.textContent = "\nPLEASE ENTER A VALID LINK";
+
+    }else{submit_btn.disabled = false; website_error.textContent = "";}
+
+    })
+
+    const facebook_link = document.getElementById("facebook_link")
+    const facebook_error = document.getElementById("facebook_error")
+
+    facebook_link.addEventListener("input",(event)=> {
+      
+    if(!validate_link(document.getElementById("facebook_link").value)){
+      submit_btn.disabled = true;
+      facebook_error.textContent = "\nPLEASE ENTER A VALID LINK";
+
+    }else{submit_btn.disabled = false; facebook_error.textContent = "";}
+
+    })
+      
+    </script>
 {% endblock %}
