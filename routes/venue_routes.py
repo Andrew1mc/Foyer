@@ -62,7 +62,6 @@ def search_venues():
   searchTerm=request.form.get('search_term','')
   
   search = Venue.query.filter(Venue.venue_name.like('%' + searchTerm + '%')).all()
-
   response={
     "count": len(search),
     "data": venue_search_data(search)
@@ -76,7 +75,6 @@ def search_venues():
 def venue_search_data(search_data):
    
   response_data = []
-  print(search_data[0].venue_id)
 
   for venue in search_data:
     response_data.append({
@@ -157,44 +155,48 @@ def create_venue_submission():
   # TODO: insert form data as a new Venue record in the db, instead
   # TODO: modify data to be the data object returned from db insertion
   form = VenueForm(request.form)
+  if(form.validate):
+    city_name = len(city_details.query.filter(city_details.city_name == form.city.data).all())
+    city_state = len(city_details.query.filter(city_details.state == form.state.data).all())
 
-  city_name = len(city_details.query.filter(city_details.city_name == form.city.data).all())
-  city_state = len(city_details.query.filter(city_details.state == form.state.data).all())
+    if ((city_name < 1) or (city_state < 1)):
+      
+      new_city = city_details(city_name = form.city.data, state = form.state.data)
+      db.session.add(new_city)
+      db.session.commit()
 
-  if ((city_name < 1) or (city_state < 1)):
+      temp = (city_details.query.filter(city_details.city_name == form.city.data, city_details.state == form.state.data).one())
+      city_id = temp.city_id
+    else:
+      temp = (city_details.query.filter(city_details.city_name == form.city.data, city_details.state == form.state.data).one())
+      city_id = temp.city_id
+
+      
+    new_venue = Venue(
+      venue_name = form.venue_name.data,
+      city_id = city_id,
+      address = form.address.data,
+      phone = form.phone.data,
+      image_link = form.image_link.data,
+      website_link = form.website_link.data,
+      facebook_link = form.facebook_link.data,
+      seeking_talent = form.seeking_talent.data,
+      seeking_description = form.seeking_description.data )
     
-    new_city = city_details(city_name = form.city.data, state = form.state.data)
-    db.session.add(new_city)
+    db.session.add(new_venue)
+
+    for genre in form.genres.data:
+      
+      if(len(Genre.query.filter(Genre.genre_name == genre).all())<0):
+        new_genre = Genre(genre_name = genre)
+        db.session.add(new_genre)
+    
     db.session.commit()
+    db.session.close()
 
-    temp = (city_details.query.filter(city_details.city_name == form.city.data, city_details.state == form.state.data).one())
-    city_id = temp.city_id
   else:
-    temp = (city_details.query.filter(city_details.city_name == form.city.data, city_details.state == form.state.data).one())
-    city_id = temp.city_id
-
-    
-  new_venue = Venue(
-     venue_name = form.venue_name.data,
-     city_id = city_id,
-     address = form.address.data,
-     phone = form.phone.data,
-     image_link = form.image_link.data,
-     website_link = form.website_link.data,
-     facebook_link = form.facebook_link.data,
-     seeking_talent = form.seeking_talent.data,
-     seeking_description = form.seeking_description.data )
-  
-  db.session.add(new_venue)
-
-  for genre in form.genres.data:
-    
-    if(len(Genre.query.filter(Genre.genre_name == genre).all())<0):
-      new_genre = Genre(genre_name = genre)
-      db.session.add(new_genre)
-  
-  db.session.commit()
-  db.session.close()
+    flash("Please ensure that all fields are filled out appropriately!")
+    return('/venues/create')
   return render_template('pages/home.html')
 
 

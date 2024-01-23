@@ -44,7 +44,7 @@ class Show(db.Model):
     __tablename__ = 'show'
 
     show_id = db.Column(db.Integer, primary_key=True)
-    artist_id = db.Column(db.Integer)
+    artist_id = db.Column((db.Integer), db.ForeignKey(Artist.artist_id))
     start_time = db.Column(db.DateTime)
     venue_id= db.Column((db.Integer), db.ForeignKey(Venue.venue_id))
 

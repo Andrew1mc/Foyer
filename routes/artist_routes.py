@@ -54,11 +54,11 @@ def search_artists():
   return render_template('pages/search_artists.html', results=response, search_term=request.form.get('search_term', ''))
 
 def find_past_art_shows(id):
-   return Show.query.filter(id == Show.artist_id, Show.start_time < datetime.now()).all()
-
+   return db.session.query(Show).select_from(Artist).join(Show, Show.artist_id == Artist.artist_id).filter(Artist.artist_id == id, Show.start_time<datetime.now()).all()
+          
 def find_future_art_shows(id):
-   
-   return Show.query.filter(id == Show.artist_id, Show.start_time >= datetime.now()).all()
+   return db.session.query(Show).select_from(Artist).join(Show, Show.artist_id == Artist.artist_id).filter(Artist.artist_id == id, Show.start_time>=datetime.now()).all()
+  
 
 
 
@@ -183,44 +183,44 @@ def create_artist_submission():
   # TODO: modify data to be the data object returned from db insertion
 
   form = ArtistForm(request.form)
+  if form.validate():
+    error = False
 
-  error = False
+    new_artist = Artist()
 
-  new_artist = Artist()
+    if(len(city_details.query.filter(city_details.city_name == form.city.data).all()) < 1):
+      new_city = city_details()
+      new_city.city_name = form.city.data
+      new_city.state = form.state.data
+      db.session.add(new_city)
+      db.session.commit()
+      new_artist.city_id = city_details.query.filter(city_details.city_name == form.city.data).first().city_id
 
-  if(len(city_details.query.filter(city_details.city_name == form.city.data).all()) < 1):
-    new_city = city_details()
-    new_city.city_name = form.city.data
-    new_city.state = form.state.data
-    db.session.add(new_city)
-    db.session.commit()
-    new_artist.city_id = city_details.query.filter(city_details.city_name == form.city.data).first().city_id
+    else: new_artist.city_id = city_details.query.filter(city_details.city_name == form.city.data).first().city_id
 
-  else: new_artist.city_id = city_details.query.filter(city_details.city_name == form.city.data).first().city_id
+    new_artist.artist_name = form.name.data
+    new_artist.phone = form.phone.data
+    new_artist.image_link = form.image_link.data
+    new_artist.facebook_link = form.facebook_link.data
+    new_artist.searching = form.seeking_venue.data
+    new_artist.seeking_description = form.seeking_description.data
+    new_artist.website = form.website_link.data
 
-  new_artist.artist_name = form.name.data
-  new_artist.phone = form.phone.data
-  new_artist.image_link = form.image_link.data
-  new_artist.facebook_link = form.facebook_link.data
-  new_artist.searching = form.seeking_venue.data
-  new_artist.seeking_description = form.seeking_description.data
-  new_artist.website = form.website_link.data
+    try:
+      db.session.add(new_artist)
+      db.session.commit()
 
-  try:
-    db.session.add(new_artist)
-    db.session.commit()
-
-  except:
-    error = True
-    db.session.rollback()
-    flash('Error: Artist was NOT successfully listed!')   
-  finally:
-    db.session.close()
-    if(not error):
-      flash('Artist ' + request.form['name'] + ' was successfully listed!')
-  # on successful db insert, flash success
-  
-  # TODO: on unsuccessful db insert, flash an error instead.
-  # e.g., flash('An error occurred. Artist ' + data.name + ' could not be listed.')
-        
+    except:
+      error = True
+      db.session.rollback()
+      flash('Error: Artist was NOT successfully listed!')   
+    finally:
+      db.session.close()
+      if(not error):
+        flash('Artist ' + request.form['name'] + ' was successfully listed!')
+    
+  else: 
+    flash("Form was invalid - please ensure fields are apporpriately filled out!")
+    return('forms/artist/create')
+          
   return render_template('pages/home.html')

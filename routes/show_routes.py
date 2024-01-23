@@ -42,30 +42,33 @@ def create_show_submission():
   error = False
   form = ShowForm(request.form)
 
-  if(len(Artist.query.filter(Artist.artist_id == form.artist_id.data).all()) < 1):
-     flash('Artist does not exist!')
-     return render_template('pages/home.html')
+  if(form.validate):
+   if(len(Artist.query.filter(Artist.artist_id == form.artist_id.data).all()) < 1):
+      flash('Artist does not exist!')
+      return render_template('pages/home.html')
 
-  new_show = Show()
-  new_show.artist_id = form.artist_id.data
-  new_show.start_time = form.start_time.data
-  new_show.venue_id = form.venue_id.data
-  if(len(Venue.query.filter(Venue.venue_id == form.venue_id.data).all()) < 1):
-     flash('Venue does not exist!')
-     return render_template('pages/home.html')
+   new_show = Show()
+   new_show.artist_id = form.artist_id.data
+   new_show.start_time = form.start_time.data
+   new_show.venue_id = form.venue_id.data
+   if(len(Venue.query.filter(Venue.venue_id == form.venue_id.data).all()) < 1):
+      flash('Venue does not exist!')
+      return render_template('pages/home.html')
 
-  try:  
-     db.session.add(new_show)
-     db.session.commit()
-  except:
-     error = True    
-     flash('Show failed to list!') 
+   try:  
+      db.session.add(new_show)
+      db.session.commit()
+   except:
+      error = True    
+      flash('Show failed to list!') 
 
-  finally:
-     db.session.close
-     if(not error):
-        flash('Show was successfully listed!')
-
+   finally:
+      db.session.close
+      if(not error):
+         flash('Show was successfully listed!')
+  else:
+     flash('Form was improperly filled out')
+     return('forms/show/create')
   # on successful db insert, flash success
   # TODO: on unsuccessful db insert, flash an error instead.
   # e.g., flash('An error occurred. Show could not be listed.')
