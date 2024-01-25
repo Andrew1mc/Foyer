@@ -4,6 +4,8 @@ from base import app, db
 from models import  Venue,  Artist, Show
 import dateutil
 
+meta={'csrf':False}
+
 @app.route('/shows')
 def shows():
   # displays list of shows at /shows

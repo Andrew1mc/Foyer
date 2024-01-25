@@ -12,7 +12,7 @@ def venue_genre_connector(venue_id):
   genre_finder = Venue_genre.query.filter(Venue_genre.venue_id == venue_id).all()
 
   for genre in genre_finder:
-    data.append(genre.genre_name)
+    data.append(Genre.query.filter(genre.genre_id==Genre.genre_id).first().genre_name)
         
   return data
 
@@ -155,7 +155,9 @@ def create_venue_submission():
   # TODO: insert form data as a new Venue record in the db, instead
   # TODO: modify data to be the data object returned from db insertion
   form = VenueForm(request.form)
+  
   if(form.validate):
+
     city_name = len(city_details.query.filter(city_details.city_name == form.city.data).all())
     city_state = len(city_details.query.filter(city_details.state == form.state.data).all())
 
@@ -171,7 +173,7 @@ def create_venue_submission():
       temp = (city_details.query.filter(city_details.city_name == form.city.data, city_details.state == form.state.data).one())
       city_id = temp.city_id
 
-      
+    
     new_venue = Venue(
       venue_name = form.venue_name.data,
       city_id = city_id,
@@ -183,21 +185,39 @@ def create_venue_submission():
       seeking_talent = form.seeking_talent.data,
       seeking_description = form.seeking_description.data )
     
-    db.session.add(new_venue)
+    try:
 
-    for genre in form.genres.data:
-      
-      if(len(Genre.query.filter(Genre.genre_name == genre).all())<0):
-        new_genre = Genre(genre_name = genre)
-        db.session.add(new_genre)
+      db.session.add(new_venue)
+      db.session.commit()
+
+      for genre in form.genres.data:
+        
+        if(len(Genre.query.filter(Genre.genre_name == genre).all())<1):
+          new_genre = Genre(genre_name = genre)
+          db.session.add(new_genre)
+
+        new_genre_connection = Venue_genre()
+        new_genre_connection.genre_id = Genre.query.filter(genre == Genre.genre_name).first().genre_id
+        new_genre_connection.venue_id = Venue.query.filter(Venue.venue_name == new_venue.venue_name, Venue.phone == new_venue.phone).first().venue_id
+        
+        db.session.add(new_genre_connection)
+        db.session.commit()
+
+    except:
+      db.session.rollback()
+      flash("Venue was not successfully loaded")
+
+    finally:
+      db.session.close()
+      return render_template('pages/home.html')
     
-    db.session.commit()
-    db.session.close()
+  else: 
+    flash("Form was improperly filled out")
+    return render_template('pages/home.html')
+  
+    # flash("Please ensure that all fields are filled out appropriately!")
+    # return('/venues/create')
 
-  else:
-    flash("Please ensure that all fields are filled out appropriately!")
-    return('/venues/create')
-  return render_template('pages/home.html')
 
 
 @app.route('/venues/<venue_id>', methods=['DELETE'])
@@ -208,7 +228,6 @@ def delete_venue(venue_id):
    list = Venue.query.filter(Venue.venue_id == venue_id).first()
    show_list = Show.query.filter(Show.venue_id == venue_id).all()
 
-  
    try:
         
         for show in show_list:
@@ -256,6 +275,7 @@ def edit_venue_submission(venue_id):
 
   form = VenueForm(request.form)
   
+  
   venue = Venue.query.filter(Venue.venue_id== venue_id).first()
 
   venue.venue_name = form.venue_name.data
@@ -269,5 +289,20 @@ def edit_venue_submission(venue_id):
   venue.seeking_description = form.seeking_description.data
 
   db.session.commit()
+
+  for genre in form.genres.data:
+    
+    if(len(Genre.query.filter(Genre.genre_name == genre).all())<1):
+      new_genre = Genre(genre_name = genre)
+      db.session.add(new_genre)
+
+    new_genre_connection = Venue_genre()
+    new_genre_connection.genre_id = Genre.query.filter(genre == Genre.genre_name).first().genre_id
+    new_genre_connection.venue_id = Venue.query.filter(Venue.venue_name == venue.venue_name, Venue.phone == venue.phone).first().venue_id
+    
+    db.session.add(new_genre_connection)
+    db.session.commit()
+
+  
 
   return redirect(url_for('show_venue', venue_id=venue_id))

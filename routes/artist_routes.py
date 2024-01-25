@@ -1,18 +1,19 @@
-from flask import render_template, request, flash, redirect, url_for, abort, jsonify
+from flask import render_template, request, flash, redirect, url_for
+
 from forms import ArtistForm, datetime
 from base import  app, db
 from models import city_details, Venue, Artist, Show, Genre,Art_genre
 
+meta={'csrf' : False}
 
-def artist_genre_connector(artist_id):
+def artist_genre_connector(id):
    
   genre_data = []
 
-  data = Art_genre.query.filter(Art_genre.artist_id == artist_id).all()
-
+  data = db.session.query(Genre).select_from(Art_genre).join(Genre, Genre.genre_id == Art_genre.genre_id).filter(Art_genre.artist_id == id).all()
+  
   for genre in data:
-     genre_data.append(Genre.query.filter(genre.genre_name).one)
-
+     genre_data.append(genre.genre_name)
 
   return genre_data
 
@@ -99,7 +100,7 @@ def show_artist(artist_id):
   data={
     "id": artist_id,
     "artist_name": art_data.artist_name,
-    "genres": Art_genre.query.filter(Art_genre.artist_id == art_data.artist_id),
+    "genres": artist_genre_connector(artist_id),
     "city": city_details.query.filter(city_details.city_id == art_data.city_id).first().city_name,
     "state": city_details.query.filter(city_details.city_id == art_data.city_id).first().state,
     "phone": art_data.phone,
@@ -160,16 +161,22 @@ def edit_artist_submission(artist_id):
   updated_artist.seeking_description = form.seeking_description.data
   updated_artist.website = form.website_link.data
 
-  db.session.commit()
+  
   
 
+  db.session.commit()
+  
+  for genre in form.genres.data:
+      
+      new_genre_connection = Art_genre()
+      new_genre_connection.genre_id = Genre.query.filter(genre == Genre.genre_name).first().genre_id
+      new_genre_connection.artist_id = Artist.query.filter(Artist.artist_name == updated_artist.artist_name, Artist.phone == updated_artist.phone).first().artist_id
+      
+      db.session.add(new_genre_connection)
+      db.session.commit
 
   return redirect(url_for('show_artist', artist_id=artist_id))
 
-
-
-#  Create Artist
-#  ----------------------------------------------------------------
 
 @app.route('/artists/create', methods=['GET'])
 def create_artist_form():
@@ -183,10 +190,18 @@ def create_artist_submission():
   # TODO: modify data to be the data object returned from db insertion
 
   form = ArtistForm(request.form)
-  if form.validate():
+  if(form.validate):
     error = False
-
+      
     new_artist = Artist()
+
+    for genre in form.genres.data:
+
+      if(len(Genre.query.filter(Genre.genre_name == genre).all()) < 1):
+        new_genre = Genre()
+        new_genre.genre_name = genre
+        db.session.add(new_genre)
+        db.session.commit()
 
     if(len(city_details.query.filter(city_details.city_name == form.city.data).all()) < 1):
       new_city = city_details()
@@ -207,8 +222,19 @@ def create_artist_submission():
     new_artist.website = form.website_link.data
 
     try:
+      
       db.session.add(new_artist)
+      
       db.session.commit()
+
+      for genre in form.genres.data:
+        
+        new_genre_connection = Art_genre()
+        new_genre_connection.genre_id = Genre.query.filter(genre == Genre.genre_name).first().genre_id
+        new_genre_connection.artist_id = Artist.query.filter(Artist.artist_name == new_artist.artist_name, Artist.phone == new_artist.phone).first().artist_id
+        
+        db.session.add(new_genre_connection)
+        db.session.commit()
 
     except:
       error = True
@@ -218,9 +244,11 @@ def create_artist_submission():
       db.session.close()
       if(not error):
         flash('Artist ' + request.form['name'] + ' was successfully listed!')
-    
+
+    # flash("Form was invalid - please ensure fields are apporpriately filled out!")
+              
+    return render_template('pages/home.html')
+
   else: 
-    flash("Form was invalid - please ensure fields are apporpriately filled out!")
-    return('forms/artist/create')
-          
-  return render_template('pages/home.html')
+    flash("Form was improperly filled out")
+    return render_template('pages/home.html')
